@@ -2,7 +2,7 @@
 
 namespace LoadTester.Domain;
 
-public class TargetConfiguration
+public sealed class TargetConfiguration : IValidatable
 {
     private TargetConfiguration(Uri targetUri, int requestPerSecond, TimeSpan testDuration)
     {
@@ -10,14 +10,7 @@ public class TargetConfiguration
         this.RequestPerSecond = requestPerSecond;
         this.TestDuration = testDuration;
 
-        var validator = new TargetConfigurationValidator();
-
-        var validationResult = validator.Validate(this);
-
-        if (!validationResult.IsValid)
-        {
-            throw new ArgumentException(validationResult.ToString());
-        }
+        Validate();
     }
 
     public Uri TargetUri { get; }
@@ -29,5 +22,17 @@ public class TargetConfiguration
     public static TargetConfiguration Create(Uri targetUri, int requestsPerSecond, TimeSpan testDuration)
     {
         return new TargetConfiguration(targetUri, requestsPerSecond, testDuration);
+    }
+
+    public void Validate()
+    {
+        var validator = new TargetConfigurationValidator();
+
+        var validationResult = validator.Validate(this);
+
+        if (!validationResult.IsValid)
+        {
+            throw new ArgumentException(validationResult.ToString());
+        }
     }
 }
