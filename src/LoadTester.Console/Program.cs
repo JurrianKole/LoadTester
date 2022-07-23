@@ -1,17 +1,24 @@
 ﻿using System.CommandLine;
-
+using LoadTester.Console;
 using LoadTester.Domain;
+using LoadTester.Infrastructure.Http;
 
-var rootCommand = ConfigureRootCommand();
+using Microsoft.Extensions.DependencyInjection;
+
+var serviceCollection = new ServiceCollection();
+
+ServiceConfigurator.ConfigureServices(serviceCollection);
+
+var serviceProvider = serviceCollection.BuildServiceProvider();
+
+var rootCommand = ConfigureRootCommand(serviceProvider);
 
 await rootCommand.InvokeAsync(args);
 
-Console.WriteLine("Hello, World!");
-
-static RootCommand ConfigureRootCommand()
+static RootCommand ConfigureRootCommand(IServiceProvider provider)
 {
     var targetUriOption = new Option<Uri>(
-        name: "--targetUri",
+        name: "--target",
         description: "Target Uri to load test");
 
     var requestsPerSecondOption = new Option<int>(
@@ -24,7 +31,7 @@ static RootCommand ConfigureRootCommand()
 
     var rootCommand = new RootCommand("LoadTester");
 
-    var loadTestCommand = new Command("LoadTest", "Required configuration for the load test application")
+    var loadTestCommand = new Command("loadtest", "Required configuration for the load test application")
     {
         targetUriOption,
         requestsPerSecondOption,
@@ -33,13 +40,17 @@ static RootCommand ConfigureRootCommand()
 
     rootCommand.AddCommand(loadTestCommand);
 
-    rootCommand.SetHandler((targetUri, requestsPerSecond, testDuration) =>
+    loadTestCommand.SetHandler(async (targetUri, requestsPerSecond, testDuration) =>
         {
             var targetConfiguration = TargetConfiguration
                 .Create(
                     targetUri,
                     requestsPerSecond,
                     TimeSpan.FromSeconds(testDuration));
+
+            var loadTestHttpClient = provider.GetService<LoadTestHttpClient>();
+
+            await loadTestHttpClient.SendRequest();
         },
         targetUriOption,
         requestsPerSecondOption,
