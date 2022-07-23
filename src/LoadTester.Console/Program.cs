@@ -1,12 +1,21 @@
 ﻿using System.CommandLine;
-
+using LoadTester.Console;
 using LoadTester.Domain;
+using LoadTester.Infrastructure.Http;
 
-var rootCommand = ConfigureRootCommand();
+using Microsoft.Extensions.DependencyInjection;
+
+var serviceCollection = new ServiceCollection();
+
+ServiceConfigurator.ConfigureServices(serviceCollection);
+
+var serviceProvider = serviceCollection.BuildServiceProvider();
+
+var rootCommand = ConfigureRootCommand(serviceProvider);
 
 await rootCommand.InvokeAsync(args);
 
-static RootCommand ConfigureRootCommand()
+static RootCommand ConfigureRootCommand(IServiceProvider provider)
 {
     var targetUriOption = new Option<Uri>(
         name: "--target",
@@ -31,13 +40,17 @@ static RootCommand ConfigureRootCommand()
 
     rootCommand.AddCommand(loadTestCommand);
 
-    loadTestCommand.SetHandler((targetUri, requestsPerSecond, testDuration) =>
+    loadTestCommand.SetHandler(async (targetUri, requestsPerSecond, testDuration) =>
         {
             var targetConfiguration = TargetConfiguration
                 .Create(
                     targetUri,
                     requestsPerSecond,
                     TimeSpan.FromSeconds(testDuration));
+
+            var loadTestHttpClient = provider.GetService<LoadTestHttpClient>();
+
+            await loadTestHttpClient.SendRequest();
         },
         targetUriOption,
         requestsPerSecondOption,
