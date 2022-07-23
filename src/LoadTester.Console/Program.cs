@@ -6,12 +6,10 @@ var rootCommand = ConfigureRootCommand();
 
 await rootCommand.InvokeAsync(args);
 
-Console.WriteLine("Hello, World!");
-
 static RootCommand ConfigureRootCommand()
 {
     var targetUriOption = new Option<Uri>(
-        name: "--targetUri",
+        name: "--target",
         description: "Target Uri to load test");
 
     var requestsPerSecondOption = new Option<int>(
@@ -24,7 +22,7 @@ static RootCommand ConfigureRootCommand()
 
     var rootCommand = new RootCommand("LoadTester");
 
-    var loadTestCommand = new Command("LoadTest", "Required configuration for the load test application")
+    var loadTestCommand = new Command("loadtest", "Required configuration for the load test application")
     {
         targetUriOption,
         requestsPerSecondOption,
@@ -33,7 +31,7 @@ static RootCommand ConfigureRootCommand()
 
     rootCommand.AddCommand(loadTestCommand);
 
-    rootCommand.SetHandler((targetUri, requestsPerSecond, testDuration) =>
+    loadTestCommand.SetHandler((targetUri, requestsPerSecond, testDuration) =>
         {
             var targetConfiguration = TargetConfiguration
                 .Create(
